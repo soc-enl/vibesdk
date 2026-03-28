@@ -2,6 +2,7 @@ import { sentryVitePlugin } from '@sentry/vite-plugin';
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import svgr from 'vite-plugin-svgr';
+import dotenv from 'dotenv';
 import path from 'path';
 
 import { cloudflare } from '@cloudflare/vite-plugin';
@@ -18,6 +19,7 @@ const plugins = 	[
 	// 	project: 'javascript-react',
 	// }),
 ];
+dotenv.config();
 
 if (process.env.SENTRY_AUTH_TOKEN) {
 	console.log('Sentry auth token found, adding sentry plugin');
@@ -26,6 +28,8 @@ if (process.env.SENTRY_AUTH_TOKEN) {
 		org: 'enl',
 		project: 'javascript-react',
 	}));
+} else {
+	console.log('No Sentry auth token found, skipping sentry plugin', process.env.SENTRY_AUTH_TOKEN);
 }
 
 // https://vite.dev/config/
@@ -34,6 +38,10 @@ export default defineConfig({
 		exclude: ['format', 'editor.all'],
 		include: ['monaco-editor/esm/vs/editor/editor.api'],
 		force: true,
+	},
+
+	build: {
+		sourcemap: true,
 	},
 
 	// build: {
