@@ -6,15 +6,6 @@
 		},
 		{
 			"path": "./tsconfig.node.json"
-		},
-		{
-			"path": "./tsconfig.worker.json"
 		}
-	],
-	"compilerOptions": {
-		"composite": true,
-		"types": [
-			"./worker-configuration.d.ts"
-		]
-	}
+	]
 }

@@ -4,8 +4,6 @@
     ".": {
       "entry": [
         "src/main.tsx",
-        "worker/index.ts",
-        "scripts/**/*.ts",
         "container/**/*.ts",
         "debug-tools/**/*.{ts,py}"
       ],

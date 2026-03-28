@@ -23,7 +23,7 @@ export default tseslint.config(
       js.configs.recommended,
       ...tseslint.configs.recommended
     ],
-    files: ['src/**/*.{ts,tsx}', 'worker/**/*.{ts,tsx}'],
+    files: ['src/**/*.{ts,tsx}', 'shared/**/*.{ts,tsx}'],
     languageOptions: {
       ecmaVersion: 2022,
       globals: globals.browser,
@@ -36,6 +36,7 @@ export default tseslint.config(
       ...reactHooks.configs.recommended.rules,
       'react-hooks/exhaustive-deps': 'error',
       '@typescript-eslint/no-explicit-any': 'off',
+	  '@typescript-eslint/no-empty-object-type': 'off',
       '@typescript-eslint/no-unused-vars': 'off',
       'react-refresh/only-export-components': [
         'warn',

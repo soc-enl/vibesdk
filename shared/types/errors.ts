@@ -1,5 +1,12 @@
-import type { RateLimitError } from "worker/services/rate-limit/errors";
-import type { RateLimitType } from "worker/services/rate-limit/config";
+export type RateLimitType = 'global_api' | 'auth' | 'per_user' | string;
+
+export interface RateLimitError {
+	message: string;
+	limitType?: RateLimitType;
+	limit?: number;
+	period?: number;
+	suggestions?: string[];
+}
 
 /**
  * Security error types for proper error handling
@@ -51,7 +58,7 @@ export class RateLimitExceededError extends SecurityError {
     static fromRateLimitError(error: RateLimitError): RateLimitExceededError {
         return new RateLimitExceededError(
             error.message,
-            error.limitType,
+            error.limitType ?? 'global_api',
             error.limit,
             error.period,
             error.suggestions

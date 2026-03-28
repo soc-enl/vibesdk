@@ -148,13 +148,16 @@ interface CSRFTokenInfo {
 	expiresAt: number;
 }
 
+const DEFAULT_API_BASE_URL =
+	import.meta.env.VITE_API_URL?.trim() || 'https://vibesdk.megabyte.app';
+
 class ApiClient {
 	private baseUrl: string;
 	private defaultHeaders: Record<string, string>;
 	private csrfTokenInfo: CSRFTokenInfo | null = null;
 
 	constructor(config: ApiClientConfig = {}) {
-		this.baseUrl = config.baseUrl || '';
+		this.baseUrl = config.baseUrl || DEFAULT_API_BASE_URL;
 		this.defaultHeaders = {
 			'Content-Type': 'application/json',
 			...config.defaultHeaders,
@@ -937,7 +940,7 @@ class ApiClient {
 	 * This redirects to GitHub OAuth
 	 */
 	initiateGitHubOAuth(): void {
-		const oauthUrl = new URL('/api/github-app/authorize', window.location.origin);
+		const oauthUrl = new URL('/api/github-app/authorize', this.baseUrl || window.location.origin);
 		window.location.href = oauthUrl.toString();
 	}
 
@@ -1181,7 +1184,7 @@ class ApiClient {
 	initiateOAuth(provider: OAuthProvider, redirectUrl?: string): void {
 		const oauthUrl = new URL(
 			`/api/auth/oauth/${provider}`,
-			window.location.origin,
+			this.baseUrl || window.location.origin,
 		);
 		if (redirectUrl) {
 			oauthUrl.searchParams.set('redirect_url', redirectUrl);

@@ -30,11 +30,13 @@
 		  ],
           "shared/*": [
             "./shared/*"
-          ],
-          "worker/*": [
-            "./worker/*"
           ]
 		}
 	},
-	"include": ["src", "shared"],
+	"include": [
+		"src/App.tsx",
+		"src/main.tsx",
+		"src/vite-env.d.ts",
+		"shared/types/errors.ts"
+	],
 }

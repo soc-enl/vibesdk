@@ -5,14 +5,10 @@ import svgr from 'vite-plugin-svgr';
 import dotenv from 'dotenv';
 import path from 'path';
 
-import { cloudflare } from '@cloudflare/vite-plugin';
 import tailwindcss from '@tailwindcss/vite';
 const plugins = 	[
 	react(),
 	svgr(),
-	cloudflare({
-		configPath: 'wrangler.jsonc',
-	}),
 	tailwindcss(),
 	// sentryVitePlugin({
 	// 	org: 'cloudflare-0u',
@@ -60,24 +56,15 @@ export default defineConfig({
 			debug: 'debug/src/browser',
 			'@': path.resolve(__dirname, './src'),
 			'shared': path.resolve(__dirname, './shared'),
-			'worker': path.resolve(__dirname, './worker'),
 		},
 	},
 
-	// Configure for Prisma + Cloudflare Workers compatibility
+	// Keep process/global shims for browser-compatible dependencies
 	define: {
-		// Ensure proper module definitions for Cloudflare Workers context
 		'process.env.NODE_ENV': JSON.stringify(
 			process.env.NODE_ENV || 'development',
 		),
 		global: 'globalThis',
-		// '__filename': '""',
-		// '__dirname': '""',
-	},
-
-	worker: {
-		// Handle Prisma in worker context for development
-		format: 'es',
 	},
 
 	server: {
