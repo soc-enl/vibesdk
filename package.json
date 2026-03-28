@@ -141,6 +141,7 @@
 		"@cloudflare/vitest-pool-workers": "^0.8.71",
 		"@cloudflare/workers-types": "^4.20251213.0",
 		"@eslint/js": "^9.39.2",
+		"@sentry/vite-plugin": "^5.1.1",
 		"@tailwindcss/typography": "^0.5.19",
 		"@tailwindcss/vite": "^4.1.18",
 		"@types/jest": "^29.5.14",
