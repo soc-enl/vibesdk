@@ -1,6 +1,7 @@
 import { createLogger } from './logger';
 import { isDispatcherAvailable } from './utils/dispatcherUtils';
 import { createApp } from './app';
+import { Hono } from 'hono';
 // import * as Sentry from '@sentry/cloudflare';
 // import { sentryOptions } from './observability/sentry';
 import { DORateLimitStore as BaseDORateLimitStore } from './services/rate-limit/DORateLimitStore';
@@ -23,9 +24,10 @@ export const DORateLimitStore = BaseDORateLimitStore;
 // Logger for the main application and handlers
 const logger = createLogger('App');
 
+
 function setOriginControl(env: Env, request: Request, currentHeaders: Headers): Headers {
     const origin = request.headers.get('Origin');
-    
+
     if (origin && isOriginAllowed(env, origin)) {
         currentHeaders.set('Access-Control-Allow-Origin', origin);
     }
@@ -79,10 +81,10 @@ async function handleUserAppRequest(request: Request, env: Env): Promise<Respons
             logger.info(`Serving websocket response from sandbox for: ${hostname}`);
             return sandboxResponse;
         }
-		
+
 		// Add headers to identify this as a sandbox response
 		let headers = new Headers(sandboxResponse.headers);
-		
+
         if (sandboxResponse.status === 500) {
             headers.set('X-Preview-Type', 'sandbox-error');
         } else {
@@ -91,7 +93,7 @@ async function handleUserAppRequest(request: Request, env: Env): Promise<Respons
         headers = setOriginControl(env, request, headers);
         headers.append('Vary', 'Origin');
 		headers.set('Access-Control-Expose-Headers', 'X-Preview-Type');
-		
+
 		return new Response(sandboxResponse.body, {
 			status: sandboxResponse.status,
 			statusText: sandboxResponse.statusText,
@@ -136,78 +138,99 @@ async function handleUserAppRequest(request: Request, env: Env): Promise<Respons
 }
 
 /**
+ * Handles requests for the main domain (platform host).
+ */
+async function handleMainDomainRequest(
+	request: Request,
+	env: Env,
+	ctx: ExecutionContext
+): Promise<Response> {
+	const url = new URL(request.url);
+	const { pathname } = url;
+
+	// Handle Git protocol endpoints directly
+	// Route: /apps/:id.git/info/refs or /apps/:id.git/git-upload-pack
+	if (isGitProtocolRequest(pathname)) {
+		return handleGitProtocolRequest(request, env, ctx);
+	}
+
+	// Serve static assets for all non-API routes from the ASSETS binding.
+	if (!pathname.startsWith('/api/')) {
+		return env.ASSETS.fetch(request);
+	}
+
+	// AI Gateway proxy for generated apps
+	if (pathname.startsWith('/api/proxy/openai')) {
+		// Only handle requests from valid origins of the preview domain
+		const origin = request.headers.get('Origin');
+		const previewDomain = getPreviewDomain(env);
+
+		logger.info(`Origin: ${origin}, Preview Domain: ${previewDomain}`);
+
+		return proxyToAiGateway(request, env, ctx);
+		// if (origin && origin.endsWith(`.${previewDomain}`)) {
+		//     return proxyToAiGateway(request, env, ctx);
+		// }
+		// logger.warn(`Access denied. Invalid origin: ${origin}, preview domain: ${previewDomain}`);
+		// return new Response('Access denied. Invalid origin.', { status: 403 });
+	}
+
+	// Handle all API requests with the main Hono application.
+	logger.info(`Handling API request for: ${url}`);
+	const app = createApp(env);
+	return app.fetch(request, env, ctx);
+}
+
+/**
  * Main Worker fetch handler with robust, secure routing.
  */
+const routingApp = new Hono<{ Bindings: Env }>();
+
+routingApp.all('*', async (c): Promise<Response> => {
+	// logger.info(`Received request: ${c.req.method} ${c.req.url}`);
+	// --- Pre-flight Checks ---
+
+	// 1. Critical configuration check: Ensure custom domain is set.
+	const previewDomain = getPreviewDomain(c.env);
+	if (!previewDomain || previewDomain.trim() === '') {
+		logger.error('FATAL: env.CUSTOM_DOMAIN is not configured in wrangler.toml or the Cloudflare dashboard.');
+		return new Response('Server configuration error: Application domain is not set.', { status: 500 });
+	}
+
+	const url = new URL(c.req.url);
+	const { hostname } = url;
+
+	// 2. Security: Immediately reject any requests made via an IP address.
+	const ipRegex = /^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$/;
+	if (ipRegex.test(hostname)) {
+		return new Response('Access denied. Please use the assigned domain name.', { status: 403 });
+	}
+
+	// --- Domain-based Routing ---
+
+	// Normalize hostnames for both local development (localhost) and production.
+	const customDomains = c.env.CUSTOM_DOMAINS.split(',');
+	const isMainDomainRequest = customDomains.includes(hostname) || hostname === c.env.CUSTOM_DOMAIN || hostname === 'localhost';
+	const isSubdomainRequest =
+		hostname.endsWith(`.${previewDomain}`) ||
+		(hostname.endsWith('.localhost') && hostname !== 'localhost');
+
+	// Route 1: Main Platform Request (e.g., build.cloudflare.dev or localhost)
+	if (isMainDomainRequest) {
+		return handleMainDomainRequest(c.req.raw, c.env, c.executionCtx);
+	}
+
+	// Route 2: User App Request (e.g., xyz.build.cloudflare.dev or test.localhost)
+	if (isSubdomainRequest) {
+		return handleUserAppRequest(c.req.raw, c.env);
+	}
+
+	return new Response('Not Found', { status: 404 });
+});
+
 const worker = {
 	async fetch(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
-        // logger.info(`Received request: ${request.method} ${request.url}`);
-		// --- Pre-flight Checks ---
-
-		// 1. Critical configuration check: Ensure custom domain is set.
-        const previewDomain = getPreviewDomain(env);
-		if (!previewDomain || previewDomain.trim() === '') {
-			logger.error('FATAL: env.CUSTOM_DOMAIN is not configured in wrangler.toml or the Cloudflare dashboard.');
-			return new Response('Server configuration error: Application domain is not set.', { status: 500 });
-		}
-
-		const url = new URL(request.url);
-		const { hostname, pathname } = url;
-
-		// 2. Security: Immediately reject any requests made via an IP address.
-		const ipRegex = /^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$/;
-		if (ipRegex.test(hostname)) {
-			return new Response('Access denied. Please use the assigned domain name.', { status: 403 });
-		}
-
-		// --- Domain-based Routing ---
-
-		// Normalize hostnames for both local development (localhost) and production.
-		const isMainDomainRequest =
-			hostname === env.CUSTOM_DOMAIN || hostname === 'localhost';
-		const isSubdomainRequest =
-			hostname.endsWith(`.${previewDomain}`) ||
-			(hostname.endsWith('.localhost') && hostname !== 'localhost');
-
-		// Route 1: Main Platform Request (e.g., build.cloudflare.dev or localhost)
-		if (isMainDomainRequest) {
-			// Handle Git protocol endpoints directly
-			// Route: /apps/:id.git/info/refs or /apps/:id.git/git-upload-pack
-			if (isGitProtocolRequest(pathname)) {
-				return handleGitProtocolRequest(request, env, ctx);
-			}
-
-			// Serve static assets for all non-API routes from the ASSETS binding.
-			if (!pathname.startsWith('/api/')) {
-				return env.ASSETS.fetch(request);
-			}
-			// AI Gateway proxy for generated apps
-			if (pathname.startsWith('/api/proxy/openai')) {
-                // Only handle requests from valid origins of the preview domain
-                const origin = request.headers.get('Origin');
-                const previewDomain = getPreviewDomain(env);
-
-                logger.info(`Origin: ${origin}, Preview Domain: ${previewDomain}`);
-
-                return proxyToAiGateway(request, env, ctx);
-				// if (origin && origin.endsWith(`.${previewDomain}`)) {
-                //     return proxyToAiGateway(request, env, ctx);
-                // }
-                // logger.warn(`Access denied. Invalid origin: ${origin}, preview domain: ${previewDomain}`);
-                // return new Response('Access denied. Invalid origin.', { status: 403 });
-			}
-
-			// Handle all API requests with the main Hono application.
-			logger.info(`Handling API request for: ${url}`);
-			const app = createApp(env);
-			return app.fetch(request, env, ctx);
-		}
-
-		// Route 2: User App Request (e.g., xyz.build.cloudflare.dev or test.localhost)
-		if (isSubdomainRequest) {
-			return handleUserAppRequest(request, env);
-		}
-
-		return new Response('Not Found', { status: 404 });
+		return routingApp.fetch(request, env, ctx);
 	},
 } satisfies ExportedHandler<Env>;
 

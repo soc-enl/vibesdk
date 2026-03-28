@@ -29,7 +29,7 @@ export function createApp(env: Env): Hono<AppEnv> {
     });
     
     // CORS configuration
-    app.use('/api/*', cors(getCORSConfig(env)));
+    app.use('/api/*', cors(getCORSConfig()));
     
     // CSRF protection using double-submit cookie pattern with proper GET handling
     app.use('*', async (c, next) => {
