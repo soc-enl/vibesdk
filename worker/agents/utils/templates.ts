@@ -103,14 +103,14 @@ To build a valid, previewable and deployable project, it is essential to follow 
 1. The package.json **MUST** be of the following form: 
 \`\`\`
 ...
-	"scripts": {
-		"dev": "vite --host 0.0.0.0 --port \${PORT:-8001}",
-		"build": "vite build",
-		"lint": "eslint --cache -f json --quiet .",
-		"preview": "bun run build && vite preview --host 0.0.0.0 --port \${PORT:-8001}",
-		"deploy": "bun run build && wrangler deploy",
-		"cf-typegen": "wrangler types"
-	}
+  "scripts": {
+    "dev": "vite --host 0.0.0.0 --port \${PORT:-8001}",
+    "build": "vite build",
+    "lint": "eslint --cache -f json --quiet .",
+    "preview": "bun run build && vite preview --host 0.0.0.0 --port \${PORT:-8001}",
+    "deploy": "bun run build && wrangler deploy",
+    "cf-typegen": "wrangler types"
+  }
 ...
 \`\`\`
 
@@ -131,19 +131,21 @@ ${VITE_CONFIG_MINIMAL}
  * Used when starting from-scratch (general mode) or when no template fits.
  */
 export function createScratchTemplateDetails(): TemplateDetails {
-    return {
-        name: 'scratch',
-        description: { selection: 'from-scratch baseline', usage: `No template. Agent will scaffold as needed. **IT IS RECOMMENDED THAT YOU CHOOSE A VALID PRECONFIGURED TEMPLATE IF POSSIBLE** ${SCRATCH_TEMPLATE_INSTRUCTIONS}` },
-        fileTree: { path: '/', type: 'directory', children: [] },
-        allFiles: {},
-        language: 'typescript',
-        deps: {},
-        projectType: 'general',
-        frameworks: [],
-        importantFiles: [],
-        dontTouchFiles: [],
-        redactedFiles: [],
-        disabled: false,
-    };
+  return {
+    name: 'scratch',
+    description: {
+      selection: 'from-scratch baseline',
+      usage: `No template. Agent will scaffold as needed. **IT IS RECOMMENDED THAT YOU CHOOSE A VALID PRECONFIGURED TEMPLATE IF POSSIBLE** ${SCRATCH_TEMPLATE_INSTRUCTIONS}`,
+    },
+    fileTree: { path: '/', type: 'directory', children: [] },
+    allFiles: {},
+    language: 'typescript',
+    deps: {},
+    projectType: 'general',
+    frameworks: [],
+    importantFiles: [],
+    dontTouchFiles: [],
+    redactedFiles: [],
+    disabled: false,
+  };
 }
-

@@ -9,9 +9,7 @@
         "container/**/*.ts",
         "debug-tools/**/*.{ts,py}"
       ],
-      "project": [
-        "**/*.{ts,tsx,js,jsx,mjs,cjs}"
-      ],
+      "project": ["**/*.{ts,tsx,js,jsx,mjs,cjs}"],
       "ignore": [
         "**/*.d.ts",
         "dist/**",
@@ -27,12 +25,7 @@
         "@tailwindcss/typography",
         "@tailwindcss/vite"
       ],
-      "ignoreBinaries": [
-        "wrangler",
-        "drizzle-kit",
-        "tsx",
-        "vitest"
-      ]
+      "ignoreBinaries": ["wrangler", "drizzle-kit", "tsx", "vitest"]
     }
   },
   "rules": {
@@ -50,9 +43,7 @@
     "enumMembers": "error",
     "classMembers": "error"
   },
-  "exclude": [
-    "unresolved"
-  ],
+  "exclude": ["unresolved"],
   "ignoreExportsUsedInFile": true,
   "typescript": {
     "config": ["tsconfig.json", "tsconfig.*.json"]

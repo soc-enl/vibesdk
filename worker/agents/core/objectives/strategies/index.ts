@@ -3,14 +3,14 @@ import type { AdditionalExportStrategy } from './types';
 import { PresentationExportStrategy } from './presentation';
 
 export function getAdditionalExportStrategy(
-	projectType: ProjectType,
+  projectType: ProjectType,
 ): AdditionalExportStrategy | null {
-	switch (projectType) {
-		case 'presentation':
-			return new PresentationExportStrategy();
-		default:
-			return null;
-	}
+  switch (projectType) {
+    case 'presentation':
+      return new PresentationExportStrategy();
+    default:
+      return null;
+  }
 }
 
 export type { AdditionalExportStrategy, ExportContext } from './types';
