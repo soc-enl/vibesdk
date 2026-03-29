@@ -276,7 +276,7 @@ export class AuthService extends BaseService {
       case 'google':
         return GoogleOAuthProvider.create(this.env, url);
       case 'github':
-        return GitHubOAuthProvider.create(this.env, url, request);
+        return GitHubOAuthProvider.create(this.env, url);
       default:
         throw new SecurityError(
           SecurityErrorType.INVALID_INPUT,

@@ -14,45 +14,6 @@ import {
 
 const logger = createLogger('GitHubOAuth');
 
-function getHostnameFromUrl(urlValue: string | null): string | null {
-  if (!urlValue) {
-    return null;
-  }
-
-  try {
-    return new URL(urlValue).hostname.toLowerCase();
-  } catch {
-    return null;
-  }
-}
-
-function parseCustomDomains(customDomains: string | undefined): Set<string> {
-  if (!customDomains) {
-    return new Set<string>();
-  }
-
-  return new Set(
-    customDomains
-      .split(',')
-      .map((domain) => domain.trim().toLowerCase())
-      .filter((domain) => domain.length > 0),
-  );
-}
-
-function shouldUseAltGitHubCredentials(env: Env, request: Request): boolean {
-  const customDomains = parseCustomDomains(env.CUSTOM_DOMAINS);
-  if (customDomains.size === 0) {
-    return false;
-  }
-
-  const candidateHosts = [
-    getHostnameFromUrl(request.headers.get('Origin')),
-    getHostnameFromUrl(request.headers.get('Referer')),
-    getHostnameFromUrl(request.url),
-  ].filter((host): host is string => !!host);
-
-  return candidateHosts.some((host) => customDomains.has(host));
-}
 
 /**
  * GitHub OAuth Provider implementation
@@ -146,23 +107,17 @@ export class GitHubOAuthProvider extends BaseOAuthProvider {
   static create(
     env: Env,
     baseUrl: string,
-    request: Request,
   ): GitHubOAuthProvider {
-    const useAltCredentials = shouldUseAltGitHubCredentials(env, request);
-
-    const clientId = useAltCredentials
-      ? env.GITHUB_CLIENT_ID_ALT
-      : env.GITHUB_CLIENT_ID;
-    const clientSecret = useAltCredentials
-      ? env.GITHUB_CLIENT_SECRET_ALT
-      : env.GITHUB_CLIENT_SECRET;
-
-    if (!clientId || !clientSecret) {
-      throw new Error('GitHub OAuth credentials not configured');
+    if (!env.GITHUB_CLIENT_ID || !env.GITHUB_CLIENT_SECRET) {
+        throw new Error('GitHub OAuth credentials not configured');
     }
 
     const redirectUri = `${baseUrl}/api/auth/callback/github`;
 
-    return new GitHubOAuthProvider(clientId, clientSecret, redirectUri);
+    return new GitHubOAuthProvider(
+        env.GITHUB_CLIENT_ID,
+        env.GITHUB_CLIENT_SECRET,
+        redirectUri
+    );
   }
 }
